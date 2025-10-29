@@ -10,7 +10,9 @@
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.14.1",
+    "socket.io": "^4.7.2",
+    "better-sqlite3": "^8.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
