@@ -6,7 +6,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 // Configuration - À METTRE DANS UN FICHIER .env EN PRODUCTION !
-const TOKEN = process.env.DISCORD_TOKEN || 'MTQzMjM4MTE2MTQwMDk1OTEyMA.G3gQOm.Dm7PZx1Y7vY8axHQYIGEntJHbZQalozeYOJm8I';
+const TOKEN = process.env.TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID || '1431031931025231992';
 const CATEGORY_ID = process.env.CATEGORY_ID || '1431031975694696498';
 const CLIENT_ID = '1432381161400959120'; // Ton Application ID
