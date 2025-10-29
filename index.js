@@ -2,7 +2,6 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const Database = require('better-sqlite3');
 const path = require('path');
 
 // Configuration - À METTRE DANS UN FICHIER .env EN PRODUCTION !
