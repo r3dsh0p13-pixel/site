@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin - Gestion des Avis Google</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;}
+.container{max-width:1400px;margin:0 auto;}
+.header{background:white;padding:30px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.2);margin-bottom:30px;}
+.header h1{color:#667eea;font-size:32px;margin-bottom:10px;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px;}
+.stat-card{background:white;padding:20px;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);text-align:center;}
+.stat-card h3{color:#666;font-size:14px;margin-bottom:10px;}
+.stat-card .number{font-size:32px;font-weight:bold;color:#667eea;}
+.filters{background:white;padding:20px;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);margin-bottom:20px;display:flex;gap:15px;flex-wrap:wrap;}
+.filter-btn{padding:10px 20px;border:2px solid #667eea;background:white;color:#667eea;border-radius:25px;cursor:pointer;font-size:14px;transition:all 0.3s;}
+.filter-btn.active{background:#667eea;color:white;}
+.avis-list{display:grid;gap:20px;}
+.avis-card{background:white;padding:25px;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;transition:transform 0.3s;}
+.avis-card:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,0.15);}
+.avis-info{display:grid;gap:10px;}
+.avis-header{display:flex;align-items:center;gap:15px;}
+.username{font-size:20px;font-weight:bold;color:#333;}
+.badge{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:bold;}
+.badge.en-attente{background:#fff3cd;color:#856404;}
+.badge.paye{background:#d4edda;color:#155724;}
+.badge.refuse{background:#f8d7da;color:#721c24;}
+.montant{font-size:24px;font-weight:bold;color:#28a745;}
+.lien{color:#667eea;text-decoration:none;word-break:break-all;}
+.lien:hover{text-decoration:underline;}
+.date{color:#999;font-size:14px;}
+.actions{display:flex;gap:10px;flex-direction:column;}
+.btn{padding:12px 25px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;transition:all 0.3s;white-space:nowrap;}
+.btn-success{background:#28a745;color:white;}
+.btn-success:hover{background:#218838;}
+.btn-danger{background:#dc3545;color:white;}
+.btn-danger:hover{background:#c82333;}
+.empty-state{text-align:center;padding:60px 20px;background:white;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+.empty-state h2{color:#999;margin-bottom:10px;}
+#loginBox{background:white;padding:40px;border-radius:15px;max-width:400px;margin:100px auto;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.2);}
+#loginBox input{width:100%;padding:12px;margin-bottom:20px;border-radius:8px;border:2px solid #ddd;font-size:16px;}
+#loginBox button{padding:12px 25px;border:none;border-radius:8px;cursor:pointer;font-size:16px;background:#667eea;color:white;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginBox">
+    <h2>🔐 Connexion Panel</h2>
+    <input type="password" id="loginPassword" placeholder="Mot de passe">
+    <button onclick="login()">Se connecter</button>
+</div>
+
+<!-- Panel -->
+<div class="container" id="panel" style="display:none;">
+    <div class="header">
+        <h1>🎯 Panel - Gestion des Avis Google</h1>
+        <p id="roleLabel"></p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card"><h3>EN ATTENTE</h3><div class="number" id="stat-attente">0</div></div>
+        <div class="stat-card"><h3>PAYÉS</h3><div class="number" id="stat-paye">0</div></div>
+        <div class="stat-card"><h3>REFUSÉS</h3><div class="number" id="stat-refuse">0</div></div>
+        <div class="stat-card"><h3>MONTANT TOTAL À PAYER</h3><div class="number" id="stat-montant">0.00€</div></div>
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" data-filter="tous">Tous</button>
+        <button class="filter-btn" data-filter="en_attente">En attente</button>
+        <button class="filter-btn" data-filter="paye">Payés</button>
+        <button class="filter-btn" data-filter="refuse">Refusés</button>
+    </div>
+
+    <div class="avis-list" id="avisList"></div>
+</div>
+
+<script>
+const LTC_ADDRESS = "LbcfECZSwFcgC3YiiqmiPiPHXEqiiwGx2N"; 
+const PAYPAL_LINK = "https://paypal.me/Meyro3"; 
+
+let allAvis = [];
+let currentFilter = 'tous';
+let role = null;
+let token = null;
+
+function login(){
+    const pwd = document.getElementById('loginPassword').value;
+    if(pwd==='admin123') role='admin';
+    else if(pwd==='fournisseur123') role='fournisseur';
+    else { alert('❌ Mot de passe incorrect'); return; }
+
+    fetch('/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pwd })
+    }).then(r=>r.json())
+      .then(d=>{
+        if(!d.success){ alert('❌ Erreur connexion'); return; }
+        token = d.token;
+        document.getElementById('loginBox').style.display='none';
+        document.getElementById('panel').style.display='block';
+        document.getElementById('roleLabel').textContent = role==='admin' ? '💼 Administrateur' : '📦 Fournisseur';
+        fetchAvis();
+      }).catch(err=>{console.error(err); alert('❌ Impossible de se connecter');});
+}
+
+async function fetchAvis(){
+    try{
+        const res = await fetch('/api/panel/avis?token='+token);
+        const data = await res.json();
+        allAvis = Array.isArray(data) ? data : data.avis || [];
+        updateStats();
+        displayAvis();
+    }catch(err){ console.error(err); alert('❌ Impossible de charger les avis'); }
+}
+
+function updateStats(){
+    const attente = allAvis.filter(a => a.statut==='en_attente').length;
+    const paye = allAvis.filter(a => a.statut==='paye').length;
+    const refuse = allAvis.filter(a => a.statut==='refuse').length;
+    const montant = allAvis.filter(a => a.statut==='en_attente').reduce((s,a)=>s+a.montant,0);
+    document.getElementById('stat-attente').textContent = attente;
+    document.getElementById('stat-paye').textContent = paye;
+    document.getElementById('stat-refuse').textContent = refuse;
+    document.getElementById('stat-montant').textContent = montant.toFixed(2)+'€';
+}
+
+function displayAvis(){
+    const avisList = document.getElementById('avisList');
+    let filtered = currentFilter==='tous' ? allAvis : allAvis.filter(a => a.statut===currentFilter);
+    if(filtered.length===0){
+        avisList.innerHTML = `<div class="empty-state"><h2>Aucun avis à afficher</h2><p>Les avis apparaîtront ici une fois soumis</p></div>`;
+        return;
+    }
+
+    avisList.innerHTML = filtered.map(a=>{
+        const date = new Date(a.date).toLocaleString('fr-FR');
+        const badgeClass = a.statut ? a.statut.replace('_','-') : '';
+        const statusText = a.statut==='en_attente'?'En attente':a.statut==='paye'?'Payé':'Refusé';
+
+        let paiementInfo = '';
+        if(role==='admin'){
+            paiementInfo = `<div><strong>💳 Paiement:</strong> ${a.moyenPaiement || '-'}</div>
+                            <div><strong>📧 Adresse:</strong> <code style="background:#f0f0f0;padding:3px 8px;border-radius:4px;">${a.adressePaiement || '-'}</code></div>`;
+        } else if(role==='fournisseur'){
+            if(a.moyenPaiement==='PayPal'){
+                paiementInfo = `<div><strong>💳 PayPal:</strong> <a href="${PAYPAL_LINK}" target="_blank">${PAYPAL_LINK}</a></div>`;
+            } else {
+                paiementInfo = `<div><strong>💰 Litecoin (LTC):</strong> <code style="background:#f0f0f0;padding:3px 8px;border-radius:4px;">${LTC_ADDRESS}</code></div>`;
+            }
+        }
+
+        return `<div class="avis-card">
+            <div class="avis-info">
+                <div class="avis-header"><span class="username">👤 ${a.username}</span>
+                <span class="badge ${badgeClass}">${statusText}</span></div>
+                <div class="montant">💰 ${a.montant.toFixed(2)}€</div>
+                ${paiementInfo}
+                <a href="${a.lienAvis}" target="_blank" class="lien">🔗 ${a.lienAvis}</a>
+                <div class="date">📅 ${date}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        displayAvis();
+    });
+});
+</script>
+</body>
+</html>
