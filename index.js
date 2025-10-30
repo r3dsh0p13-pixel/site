@@ -1,7 +1,7 @@
 // ====== CONFIGURATION ======
 const BOT_TOKEN = process.env.TOKEN; 
-const ADMIN_PASSWORD = "admin123";
-const FOURNISSEUR_PASSWORD = "fournisseur123";
+const ADMIN_PASSWORD = "150410";
+const FOURNISSEUR_PASSWORD = "akosh.922";
 const PORT = 3000;
 const LTC_ADDRESS = "LbcfECZSwFcgC3YiiqmiPiPHXEqiiwGx2N";
 const ADMIN_DISCORD_ID = "1421233178797936782";
@@ -10,7 +10,15 @@ const ADMIN_DISCORD_ID = "1421233178797936782";
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const { Client, GatewayIntentBits, EmbedBuilder, Routes, REST, InteractionType } = require('discord.js');
+const { 
+  Client, 
+  GatewayIntentBits, 
+  EmbedBuilder, 
+  Routes, 
+  REST, 
+  InteractionType, 
+  ChannelType 
+} = require('discord.js');
 
 const app = express();
 app.use(cors());
@@ -139,7 +147,7 @@ client.on('interactionCreate', async (interaction) => {
 
 // ====== MESSAGES PRIVÉS ======
 client.on('messageCreate', async (message) => {
-  if (message.author.bot || message.channel.type !== 1) return;
+  if (message.author.bot || message.channel.type !== ChannelType.DM) return;
   const userId = message.author.id;
   if (!soumissionsEnCours.has(userId)) return;
   const soumission = soumissionsEnCours.get(userId);
@@ -218,7 +226,6 @@ app.get('/api/panel/avis', authMiddleware, (req, res) => {
   if (role === 'admin') return res.json(avis);
 
   if (role === 'fournisseur') {
-    // Inclure moyenPaiement pour éviter les erreurs côté JS
     const filteredAvis = avis.map(a => ({
       id: a.id,
       username: a.username,
@@ -304,3 +311,5 @@ app.listen(PORT, () => console.log(`🚀 Serveur web lancé sur http://localhost
 client.login(BOT_TOKEN)
   .then(() => console.log('🔑 Tentative de connexion du bot...'))
   .catch(err => console.error('❌ Impossible de se connecter au bot:', err));
+
+
